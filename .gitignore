@@ -1,0 +1,14 @@
+/target/
+/bin/
+/test-output/
+/.settings/
+/sample.log
+/*.classpath
+*.class
+
+# Package Files #
+*.jar
+*.war
+*.ear
+/bat/
+/doc/
