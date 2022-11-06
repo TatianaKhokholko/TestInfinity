@@ -1,46 +1,48 @@
 package pages;
 
+import helper.WaitBeforeAnyAction;
 import jdk.jfr.Name;
-import org.openqa.selenium.By;
-import org.openqa.selenium.NoSuchElementException;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
+import org.openqa.selenium.*;
+import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.FindBy;
 import org.openqa.selenium.support.PageFactory;
 import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.Select;
 import org.openqa.selenium.support.ui.WebDriverWait;
-import org.testng.log4testng.Logger;
 
 import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 public class MainPage {
-    private final static Logger LOG = Logger.getLogger(MainPage.class);
     private WebDriver driver;
+    private WaitBeforeAnyAction waiter;
+    private ShoppingCartPage shoppingCartPage;
     public MainPage(WebDriver driver) {
         PageFactory.initElements(driver, this);
         this.driver = driver; }
 
-    @FindBy(xpath = ".//button[contains(text(), 'Accept Cookies')]")
-    private WebElement acceptCookiesButton;
-
-    @FindBy(xpath = ".//div[@class = 'hidden-print']")
+    @FindBy(xpath = ".//header[@class = 'hidden-print']")
     private WebElement headerPage;
 
     @FindBy(xpath = ".//a[@class = 'logotype']")
     private WebElement logoType;
 
-    @FindBy(xpath = ".//div[@id = 'region']")
-    private WebElement regionBlock;
+    @FindBy(xpath = ".//div[@class = 'currency']/span")
+    private WebElement regionCurrencyBlock;
 
     @Name("The button for change regional settings")
     @FindBy(xpath = ".//a[text()= 'Change']")
     private WebElement changeRegionalSettingsButton;
 
-    @FindBy(xpath = ".//a[@class= 'featherlight-content']")
-    private WebElement featherLightModalWin; //TO DO
+    @FindBy(xpath = ".//section[@id= 'box-regional-settings']")
+    private WebElement regionalSettingsModalWin;
 
     @FindBy(xpath = ".//div[@aria-label = 'Close']")
-    private WebElement closeFeatherLightModalWin; //TO DO
+    private WebElement closeRegionalSettingsModalWin;
+
+    @Name("Save button for region settings modal window")
+    @FindBy(xpath = ".//select[@name = 'currency_code']")
+    private WebElement saveRegionSettingsModalButton;
 
     @FindBy(xpath = ".//i[normalize-space(text() = 'Sign In')]/ancestor::a[@class = 'dropdown-toggle']")
     private WebElement loginDropdown;
@@ -69,7 +71,7 @@ public class MainPage {
 
     @Name("Input email for subscribe")
     @FindBy(xpath = ".//form[contains(@name, 'newsletter_subscribe')]//input[@name = 'email']")
-    private WebElement emailInput;
+    private WebElement emailSubscribeInput;
 
     @FindBy(xpath = ".//button[@name = 'subscribe']")
     private WebElement subscribeButton;
@@ -89,6 +91,20 @@ public class MainPage {
     @FindBy(xpath = ".//ul[@class ='dropdown-menu']//a[contains(@href, 'litecart.net/logout')]")
     private WebElement logoutButton;
 
+    @FindBy(xpath = ".//input[@type='search']")
+    private WebElement searchField;
+
+    @FindBy(xpath = ".//a[@title='Home']")
+    private WebElement homeButton;
+
+    @FindBy(xpath = ".//button[@name= 'add_cart_product']")
+    private WebElement addCartProductButton;
+
+    @FindBy(xpath = ".//div[@id= 'cart']")
+    private WebElement cartProductButton;
+
+    public MainPage() {
+    }
 
     public WebElement getHeaderPage() {
         return headerPage;
@@ -98,20 +114,24 @@ public class MainPage {
         return logoType;
     }
 
-    public WebElement getRegionBlock() {
-        return regionBlock;
+    public WebElement getRegionCurrencyBlock() {
+        return regionCurrencyBlock;
     }
 
     public WebElement getChangeRegionalSettingsButton() {
         return changeRegionalSettingsButton;
     }
 
-    public WebElement getFeatherLightModalWin() {
-        return featherLightModalWin;
+    public WebElement getRegionalSettingsModalWin() {
+        return regionalSettingsModalWin;
     }
 
-    public WebElement getCloseFeatherLightModalWin() {
-        return closeFeatherLightModalWin;
+    public WebElement getCloseRegionalSettingsModalWin() {
+        return closeRegionalSettingsModalWin;
+    }
+
+    public WebElement getSaveRegionSettingsModalButton() {
+        return saveRegionSettingsModalButton;
     }
 
     public WebElement getLoginDropdown() {
@@ -146,8 +166,8 @@ public class MainPage {
         return latestProductsBox;
     }
 
-    public WebElement getEmailInput() {
-        return emailInput;
+    public WebElement getEmailSubscribeInput() {
+        return emailSubscribeInput;
     }
 
     public WebElement getSubscribeButton() {
@@ -170,12 +190,42 @@ public class MainPage {
         return logoutButton;
     }
 
+    public WebElement getSearchField() {
+        return searchField;
+    }
+
+    public WebElement getHomeButton() {
+        return homeButton;
+    }
+
+    public WebElement getCartProductButton() {
+        return cartProductButton;
+    }
+
+    /**
+     * Click on search product, add to cart and navigate to cart page
+     */
+    public ShoppingCartPage addProductToCartAndGoToCart(String productItem) {
+        WebElement searchProduct = driver.findElement(By.xpath(".//a[@data-name = '%s']".formatted(productItem)));
+        searchProduct.click();
+
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+        WebElement element = wait.until(ExpectedConditions.elementToBeClickable(
+                (By.xpath(".//button[@name= 'add_cart_product']"))));
+        ((JavascriptExecutor)driver).executeScript("arguments[0].click();", element);
+
+        waiter = new WaitBeforeAnyAction(5, TimeUnit.SECONDS);
+        waiter.beforeClickOn(getCartProductButton(), driver);
+        getCartProductButton().click();
+        return shoppingCartPage;
+    }
+
     /**
      * Check the main page rendering
      */
     public boolean isDisplayedMainPage() {
         try {
-            return driver.findElement(By.xpath(".//div[@class = 'fourteen-forty']")).isDisplayed();
+            return driver.findElement(By.xpath(".//section[@id= 'box-slides']")).isDisplayed();
         } catch (NoSuchElementException e) {
             return false;
         }
@@ -192,6 +242,9 @@ public class MainPage {
         }
     }
 
+    /**
+     * Login with default login + password
+     */
     public void loginWithDefault() {
         getLoginDropdown().click();
         isLoginFormOpen();
@@ -203,18 +256,79 @@ public class MainPage {
         getLogoutButton().click();
     }
 
+    /**
+     * Login with personal account value
+     */
     public void loginApp(String userName, String userPassword) {
         getLoginDropdown().click();
-        getLoginField().sendKeys(userName);
-        getPasswdField().sendKeys(userPassword);
+        inputLogin(userName);
+        inputPassword(userPassword);
         getSignInButton().click();
     }
 
-    public String getAlertDangerMessage() {
+    public void inputLogin(String login){
+        if(getLoginField() != null){
+            getLoginField().clear();
+            getLoginField().sendKeys(login);
+        } else{
+            getLoginField().sendKeys(login);
+        }
+    }
+
+    public void inputPassword(String userPassword){
+        if(getLoginField() != null){
+            getPasswdField().clear();
+            getPasswdField().sendKeys(userPassword);
+        } else{
+            getPasswdField().sendKeys(userPassword);
+        }
+    }
+
+    public void openRegionSettings() {
+        getChangeRegionalSettingsButton().click();
+    }
+
+    public void closeRegionSettings() {
+        getCloseRegionalSettingsModalWin().click();
+    }
+
+    /**
+     * Select new currency by dropdown and save
+     */
+    public void saveCurrencyRegionSettings(String newCurrency) {
+        openRegionSettings();
+        getRegionalSettingsModalWin().isDisplayed();
+        Select dropDownCurrency = new Select(driver.findElement(By.name("currency_code")));
+        dropDownCurrency.selectByVisibleText(newCurrency);
+        getSaveRegionSettingsModalButton().click();
+    }
+
+    public String getAlertDangerMessageAfterLogout() {
         return driver.findElement(By.xpath(".//div[contains(@class, 'alert-danger')]")).getText();
     }
 
-    public String getAlertSuccessMessage(){
+    public String getAlertSuccessMessageAfterLogin(){
         return driver.findElement(By.xpath(".//div[contains(@class, 'alert-success')]")).getText();
+    }
+
+    public String getSubscribeAlertSuccess(){
+        return driver.findElement(By.xpath(".//div[contains(@class, 'alert-success')]")).getText();
+    }
+
+    public String searchProduct(String productName) {
+        getSearchField().sendKeys(productName);
+        getSearchField().click();
+        getSearchField().sendKeys(Keys.ENTER);
+        return productName;
+    }
+
+    public boolean isSearchContentProduct(String productName) {
+        return driver.findElement(By.xpath(".//div[@id ='content']//li[text()= '%s']".
+                formatted(productName))).isDisplayed();
+    }
+
+    public void subscribe(String email) {
+        getEmailSubscribeInput().sendKeys(email);
+        getSubscribeButton().click();
     }
 }
